@@ -20,37 +20,7 @@ The goal is to explore how different parameters affect performance:
 
 ---
 
-## 2. Project Structure
-
-Level2/
-│
-├── Earnings Analysis.py        # Main backtest script
-├── README.md
-│
-└── Output/
-    ├── AAPL/
-    ├── FDX/
-    ├── FLY/
-    ├── NVDA/
-    ├── ORLA/
-    ├── PL/
-    ├── TMUS/
-    ├── XPEV/
-    │
-    ├── top5_holding_time_vs_excess_return.png
-    ├── top5_profit_target_vs_excess_return.png
-    ├── top5_stop_loss_vs_excess_return.png
-    └── top5_threshold_vs_excess_return.png
-
-Each ticker folder contains:
-
-- trade-level results
-- aggregated strategy performance
-- top 5 strategies
-
----
-
-## 3. Script Framework
+## 2. Script Framework
 
 ### (1) Data Layer
 
@@ -114,7 +84,7 @@ Outputs:
 
 ---
 
-## 4. Results Analysis
+## 3. Results Analysis
 
 ### (1) Holding Time vs Excess Return
 
@@ -163,7 +133,7 @@ Key insights:
 
 ---
 
-## 5. Limitations & Future Improvements
+## 4. Limitations & Future Improvements
 
 ### (1) Bars vs Trades
 
