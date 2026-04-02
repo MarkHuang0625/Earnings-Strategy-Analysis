@@ -148,7 +148,7 @@ The following plots summarize **top 5 strategies per ticker**:
 
 ### (1) Holding Time vs Excess Return
 
-![Holding](top5_holding_time_vs_excess_return.png)
+![Holding](Output/top5_holding_time_vs_excess_return.png)
 
 Key observations:
 
@@ -160,7 +160,7 @@ Key observations:
 
 ### (2) Profit Target vs Excess Return
 
-![PT](top5_profit_target_vs_excess_return.png)
+![PT](Output/top5_profit_target_vs_excess_return.png)
 
 Observations:
 
@@ -171,7 +171,7 @@ Observations:
 
 ### (3) Stop Loss vs Excess Return
 
-![SL](top5_stop_loss_vs_excess_return.png)
+![SL](Output/top5_stop_loss_vs_excess_return.png)
 
 Observations:
 
@@ -182,7 +182,7 @@ Observations:
 
 ### (4) Threshold vs Excess Return
 
-![Threshold](top5_threshold_vs_excess_return.png)
+![Threshold](Output/top5_threshold_vs_excess_return.png)
 
 Observations:
 
