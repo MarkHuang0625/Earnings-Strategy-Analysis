@@ -2,165 +2,263 @@
 
 ## 1. Project Objective
 
-This project builds an event-driven trading strategy around earnings announcements and evaluates its performance across multiple tickers.
+This project builds an event-driven trading framework around earnings announcements, with the goal of systematically analyzing how stocks react to earnings and identifying profitable trading patterns.
 
-Core idea:
+Instead of predicting earnings outcomes, the strategy focuses on **post-earnings price behavior**, using normalized signals to capture abnormal moves relative to historical volatility.
 
-- Use pre-earnings price behavior to generate signals  
-- Take long/short positions around earnings  
-- Apply intraday and multi-day holding strategies  
-- Measure performance relative to a market benchmark (SPY)  
+The framework is designed to:
 
-The goal is to explore how different parameters affect performance:
+- Generate trading signals around earnings events
+- Evaluate performance across multiple parameter combinations
+- Compare returns against a market benchmark (SPY)
+- Identify patterns in what drives excess return
 
-- Threshold (signal strength)
+---
+
+## 2. Strategy Logic
+
+### (1) Execution Data
+
+- Uses **1-minute intraday bars**
+- Improves precision compared to previous 5-minute implementation
+- Allows more accurate detection of early post-earnings moves
+
+---
+
+### (2) Pre-Earnings Volatility Baseline
+
+Before each earnings event:
+
+- Use the past `LOOKBACK_DAYS` daily returns
+- Compute: pre_vol = std(daily returns)
+
+This serves as a **baseline volatility level** for the stock.
+
+---
+
+### (3) Intraday Scanning
+
+On the earnings reaction day:
+
+- Start scanning from **9:45 AM ET**
+- Avoid noise from opening auction (9:30–9:45)
+
+---
+
+### (4) Signal Construction
+
+Define: signal_ratio = post_earnings_move / pre_earnings_volatility
+
+Where:
+
+- `post_earnings_move` = cumulative price change since 9:45
+- `pre_earnings_volatility` = baseline volatility
+
+---
+
+### (5) Trading Rule
+
+- `ratio > threshold` → **Long**
+- `ratio < -threshold` → **Short**
+
+This measures how large the move is relative to normal volatility.
+
+---
+
+### (6) Execution Timing
+
+To avoid look-ahead bias:
+
+- Signal is generated at bar close
+- Entry happens at **next 1-minute bar** signal at t → trade at t+1
+
+---
+
+### (7) Exit Rules
+
+The framework tests both:
+
+#### Intraday holding:
+- 5, 15, 30, 60, 120, 180, 390 minutes
+
+#### Multi-day holding:
+- 1, 3, 5, 10 days
+
+With optional:
 - Stop loss
 - Profit target
-- Holding period
 
 ---
 
-## 2. Script Framework
+## 3. Code Structure
 
-### (1) Data Layer
+The main script (`Earnings Analysis.py`) is organized into several components:
 
-- Fetches:
-  - Earnings events
-  - Daily prices
-  - Intraday (5-min) bars
-- Uses chunking to handle API limits
+### Data Layer
 
----
-
-### (2) Signal Construction
-
-score = cumulative_return / (volatility * sqrt(window))
-- Measures risk-adjusted momentum before earnings
-
-Signal logic:
-- if score > threshold → long
-- if score < -threshold → short
+- Pulls:
+  - Earnings data
+  - Daily OHLC
+  - Intraday bars
+- Uses caching to reduce API calls
 
 ---
 
-### (3) Execution Engine
+### Signal Engine
 
-#### Intraday
-
-- Entry: market open or earnings timestamp
-- Exit:
-  - stop loss
-  - profit target
-  - time exit
-
-#### Multi-day
-
-- Hold across multiple trading days
-- Uses intraday path to simulate SL/PT
+- Computes pre-earnings volatility
+- Tracks intraday move from 9:45
+- Generates normalized signal (ratio)
 
 ---
 
-### (4) Market Benchmark
+### Backtesting Engine
 
-- Intraday: aligned timestamps
-- Multi-day: daily approximation
+- Iterates over:
+  - Thresholds
+  - Stop-loss / profit-target combinations
+  - Holding periods
+- Simulates:
+  - Entry (next bar)
+  - Exit (time / SL / PT)
 
 ---
 
-### (5) Backtest Engine
+### Performance Evaluation
 
-Loops over:
+For each strategy combination:
 
-- earnings events
-- thresholds
-- stop-loss / profit-target
-- holding periods
+- Stock return
+- Market return (SPY over same window)
+- Excess return
 
 Outputs:
 
-- stock return
-- market return
-- excess return
+- Trade-level data
+- Strategy-level aggregation
+- Top 5 configurations per ticker
 
 ---
 
-## 3. Results Analysis
+## 4. Results Analysis
+
+The following plots summarize **top 5 strategies per ticker**:
+
+---
 
 ### (1) Holding Time vs Excess Return
 
-![Holding Time](Output/top5_holding_time_vs_excess_return.png)
+![Holding](top5_holding_time_vs_excess_return.png)
 
-Key insights:
+Key observations:
 
-- Multi-day strategies dominate (especially 5–10 days)
-- Intraday strategies show lower returns
-- Evidence of post-earnings drift (PEAD)
+- Strong clustering in **multi-day strategies (3–10 days)**
+- Intraday strategies rarely appear in top performers
+- Suggests that earnings effects **persist beyond the same day**
 
 ---
 
 ### (2) Profit Target vs Excess Return
 
-![Profit Target](Output/top5_profit_target_vs_excess_return.png)
+![PT](top5_profit_target_vs_excess_return.png)
 
-Key insights:
+Observations:
 
-- Best performance around 10%–20% profit targets
-- Small targets underperform
-- Suggests letting winners run
+- Higher profit targets (0.1–0.2) appear more frequently
+- Indicates large post-earnings moves often **continue rather than revert**
 
 ---
 
 ### (3) Stop Loss vs Excess Return
 
-![Stop Loss](Output/top5_stop_loss_vs_excess_return.png)
+![SL](top5_stop_loss_vs_excess_return.png)
 
-Key insights:
+Observations:
 
-- Moderate stop loss (10–20%) performs better
-- Tight stop loss cuts trades too early
-- Earnings events exhibit high volatility
+- Moderate stop losses (0.05–0.2) dominate
+- Very tight stops reduce performance (likely noise-driven exits)
 
 ---
 
 ### (4) Threshold vs Excess Return
 
-![Threshold](Output/top5_threshold_vs_excess_return.png)
+![Threshold](top5_threshold_vs_excess_return.png)
 
-Key insights:
+Observations:
 
 - Higher thresholds (1.0–1.5) perform better
-- Stronger signals lead to higher-quality trades
+- Implies filtering for **strong signals** improves results
+- Weak signals are mostly noise
 
 ---
 
-## 4. Limitations & Future Improvements
+## 5. Limitations
 
-### (1) Bars vs Trades
-
-- Current: 5-minute bars (due to limited storage and computer performance)  
-- Issue: execution approximation  
-- Future: use trade-level data  
+- Uses **bar data instead of trade data**
+  - May miss intrabar price dynamics
+- Signal only uses **price-based volatility**
+  - No fundamentals or earnings surprise
+- No **transaction cost / slippage modeling**
+- Grid search is brute-force (not optimized)
+- Limited ticker universe
 
 ---
 
-### (2) Signal Design
+## 6. Future Improvements
 
-Current:
+### (1) Upgrade to Trade-Level Data
+- Capture more precise execution and microstructure effects
+- Currently limited by memory and performance constraints
 
-- simple volatility-adjusted return
+---
 
-Future improvements:
+### (2) Improve Volatility Estimation
 
+Current: std(daily returns)
+
+Potential upgrades:
+- Realized intraday volatility
 - EWMA volatility
-- downside volatility
-- regime-aware signals
+- Regime-adjusted volatility
 
 ---
 
-### (3) Transaction Costs
+### (3) Better Signal Design
 
-Currently not included:
+- Incorporate:
+  - Earnings surprise
+  - Volume spikes
+  - Gap size vs expected move
+- Separate **continuation vs reversal regimes**
 
-- bid-ask spread
-- slippage
-- market impact
+---
+
+### (4) Execution Optimization
+
+- Dynamic entry (not fixed 9:45 start)
+- VWAP-based execution
+- Adaptive holding period
+
+---
+
+### (5) Portfolio Construction
+
+- Combine signals across tickers
+- Risk-adjusted allocation
+- Cross-sectional ranking
+
+---
+
+## 7. Summary
+
+This project evolves from a simple pre-earnings signal into a **post-earnings volatility-normalized strategy**.
+
+The key insight is:
+
+> Earnings reactions should be evaluated relative to normal volatility, not in absolute terms.
+
+The framework provides a flexible foundation for further research into:
+
+- Event-driven trading
+- Volatility-normalized signals
+- Intraday vs multi-day dynamics
